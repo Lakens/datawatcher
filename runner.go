@@ -52,9 +52,6 @@ func newRunner(folder, prov string, chain *Chain, st *folderSettings, cfg *userC
 			r.watcher.skipPaths[filepath.ToSlash(rel)] = true
 		}
 	}
-	if st.GitHubRepo != "" && cfg.GitHubToken != "" {
-		r.github = &githubClient{token: cfg.GitHubToken, repo: st.GitHubRepo, path: st.GitHubPath}
-	}
 	return r, nil
 }
 
@@ -94,20 +91,8 @@ func (r *runner) logChanges(cs []change, atStartup bool) error {
 }
 
 func (r *runner) runSession(con *console) error {
-	fmt.Println("Watching:", r.folder)
-	fmt.Println("Log:     ", r.chain.path)
-	if r.github != nil {
-		fmt.Printf("GitHub:   %s/%s\n", r.settings.GitHubRepo, r.settings.GitHubPath)
-		if err := r.github.refresh(); err != nil {
-			fmt.Println("  Warning: could not reach GitHub:", err)
-		}
-	}
-	if r.settings.ZenodoEnabled {
-		fmt.Println("Zenodo:   you will be asked at the end of the session")
-	}
-	fmt.Println()
-
-	if r.chain.nextSeq == 0 {
+	newLog := r.chain.nextSeq == 0
+	if newLog {
 		err := r.logEntry(&Entry{
 			Type: "chain_start", ORCID: r.settings.ORCID, Tool: toolName + " " + toolVersion,
 			Platform: runtime.GOOS + "/" + runtime.GOARCH, Folder: filepath.Base(r.folder),
@@ -118,8 +103,23 @@ func (r *runner) runSession(con *console) error {
 		if err := os.WriteFile(filepath.Join(r.prov, "README.txt"), []byte(readmeText), 0o644); err != nil {
 			fmt.Println("  Warning: could not write README.txt:", err)
 		}
+	}
+
+	fmt.Println("Watching:", r.folder)
+	fmt.Println("Log:     ", r.chain.path)
+	r.startGitHub()
+	if r.settings.ZenodoEnabled {
+		if *r.cfg.zenodoToken(r.settings.ZenodoSandbox) == "" {
+			fmt.Println("Zenodo:   OFF, because no Zenodo token is stored on this computer")
+		} else {
+			fmt.Println("Zenodo:   you will be asked at the end of the session")
+		}
+	}
+	fmt.Println()
+
+	if newLog {
 		fmt.Println("Started a new log. The fingerprint of its first entry is")
-		fmt.Println("  " + entryHash(r.chain.lastLine))
+		fmt.Println("  " + r.chain.firstHash)
 		fmt.Println("Put this fingerprint in your preregistration, so that this log is the only one that counts for the study.")
 		fmt.Println()
 	}
@@ -177,6 +177,29 @@ func (r *runner) runSession(con *console) error {
 			// down leaves only a few seconds, so then only the end is recorded.
 			return r.finish(con, s != os.Interrupt)
 		}
+	}
+}
+
+// startGitHub prepares the GitHub upload, or says clearly why there is none.
+func (r *runner) startGitHub() {
+	st := r.settings
+	if st.GitHubRepo == "" {
+		return
+	}
+	if r.cfg.GitHubToken == "" {
+		fmt.Printf("GitHub:   OFF, because no GitHub token is stored on this computer (repository %s)\n", st.GitHubRepo)
+		return
+	}
+	if st.GitHubPath == "" {
+		st.GitHubPath = defaultGitHubPath(r.folder, r.chain.firstHash)
+		if err := writeJSON(settingsPath(r.prov), st, 0o644); err != nil {
+			fmt.Println("  Warning: could not save the settings:", err)
+		}
+	}
+	r.github = &githubClient{token: r.cfg.GitHubToken, repo: st.GitHubRepo, path: st.GitHubPath}
+	fmt.Printf("GitHub:   %s/%s\n", st.GitHubRepo, st.GitHubPath)
+	if err := r.github.refresh(); err != nil {
+		fmt.Println("  Warning: could not reach GitHub:", err)
 	}
 }
 
@@ -309,7 +332,7 @@ func (r *runner) finish(con *console, fast bool) error {
 	fmt.Printf("Session ended. The log has %d entries; the fingerprint of the last one is\n  %s\n",
 		r.chain.nextSeq, entryHash(r.chain.lastLine))
 
-	if r.settings.ZenodoEnabled && !con.closed {
+	if r.settings.ZenodoEnabled && !con.closed && *r.cfg.zenodoToken(r.settings.ZenodoSandbox) != "" {
 		site := "Zenodo"
 		if r.settings.ZenodoSandbox {
 			site = "the Zenodo test site"

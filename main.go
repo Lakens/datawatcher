@@ -99,25 +99,30 @@ func run(con *console, folderArg string, reconfigure bool, iv intervals) error {
 	if err := os.MkdirAll(prov, 0o755); err != nil {
 		return err
 	}
+	chain, err := loadChain(filepath.Join(prov, chainName))
+	if err != nil {
+		return fmt.Errorf("the existing log could not be used: %w", err)
+	}
 	st, err := loadFolderSettings(prov)
 	if err != nil {
 		return fmt.Errorf("could not read %s: %w", settingsPath(prov), err)
 	}
 	if st == nil || reconfigure {
-		if st, err = setupFolder(con, cfg, folder, st); err != nil {
+		if st, err = setupFolder(con, cfg, folder, st, chain.firstHash); err != nil {
 			return err
 		}
 		if err := writeJSON(settingsPath(prov), st, 0o644); err != nil {
 			return err
 		}
+	} else {
+		// Tokens are stored per computer. A folder copied from another
+		// computer has its settings but not the tokens, so ask for them
+		// rather than silently not uploading.
+		askMissingTokens(con, cfg, st)
 	}
 	cfg.LastFolder = folder
 	if err := saveUserConfig(cfg); err != nil {
 		return fmt.Errorf("could not save your settings: %w", err)
-	}
-	chain, err := loadChain(filepath.Join(prov, chainName))
-	if err != nil {
-		return fmt.Errorf("the existing log could not be used: %w", err)
 	}
 	r, err := newRunner(folder, prov, chain, st, cfg, iv)
 	if err != nil {
@@ -170,7 +175,70 @@ func chooseFolder(con *console, cfg *userConfig, arg string) (string, error) {
 	}
 }
 
-func setupFolder(con *console, cfg *userConfig, folder string, old *folderSettings) (*folderSettings, error) {
+func defaultGitHubPath(folder, firstHash string) string {
+	return filepath.Base(folder) + "-" + firstHash[:8] + "/" + chainName
+}
+
+// readGitHubToken asks for a token until one works for repo. It returns
+// false when nothing is entered.
+func readGitHubToken(con *console, cfg *userConfig, repo string) bool {
+	fmt.Println("Create a fine-grained token at https://github.com/settings/personal-access-tokens/new")
+	fmt.Println("with access to only this repository and the permission Contents: Read and write.")
+	for {
+		tok := con.ask("Token (stored in your user settings folder, not in the watched folder; press Enter to skip): ")
+		if tok == "" {
+			return false
+		}
+		if err := (&githubClient{token: tok, repo: repo}).check(); err != nil {
+			fmt.Println("That did not work:", err)
+			continue
+		}
+		cfg.GitHubToken = tok
+		return true
+	}
+}
+
+// readZenodoToken asks for a token until one works. It returns false when
+// nothing is entered.
+func readZenodoToken(con *console, cfg *userConfig, sandbox bool) bool {
+	fmt.Printf("Create a token at %s/account/settings/applications/tokens/new/\n", zenodoBase(sandbox))
+	fmt.Println("with the scopes deposit:write and deposit:actions.")
+	for {
+		tok := con.ask("Token (stored in your user settings folder; press Enter to skip): ")
+		if tok == "" {
+			return false
+		}
+		if err := (&zenodoClient{base: zenodoBase(sandbox), token: tok}).check(); err != nil {
+			fmt.Println("That did not work:", err)
+			continue
+		}
+		*cfg.zenodoToken(sandbox) = tok
+		return true
+	}
+}
+
+// askMissingTokens asks for tokens that the folder's settings need but that
+// are not stored on this computer, for example after the folder was moved
+// from another computer.
+func askMissingTokens(con *console, cfg *userConfig, st *folderSettings) {
+	if st.GitHubRepo != "" && cfg.GitHubToken == "" {
+		fmt.Printf("This folder's log is uploaded to the GitHub repository %s,\n", st.GitHubRepo)
+		fmt.Println("but no GitHub token is stored on this computer (tokens are stored per computer).")
+		if !readGitHubToken(con, cfg, st.GitHubRepo) {
+			fmt.Println("Without a token the log will NOT be uploaded to GitHub in this session.")
+		}
+		fmt.Println()
+	}
+	if st.ZenodoEnabled && *cfg.zenodoToken(st.ZenodoSandbox) == "" {
+		fmt.Println("This folder's log is published on Zenodo, but no Zenodo token is stored on this computer.")
+		if !readZenodoToken(con, cfg, st.ZenodoSandbox) {
+			fmt.Println("Without a token you will not be offered Zenodo publication in this session.")
+		}
+		fmt.Println()
+	}
+}
+
+func setupFolder(con *console, cfg *userConfig, folder string, old *folderSettings, firstHash string) (*folderSettings, error) {
 	st := &folderSettings{}
 	if old != nil {
 		*st = *old
@@ -228,28 +296,37 @@ func setupFolder(con *console, cfg *userConfig, folder string, old *folderSettin
 			fmt.Println("Please type the repository as owner/name, for example lakens/my-study-log.")
 			continue
 		}
-		if cfg.GitHubToken == "" || !con.yes("Use the GitHub token you entered before? [Y/n] ", true) {
-			fmt.Println("Create a fine-grained token at https://github.com/settings/personal-access-tokens/new")
-			fmt.Println("with access to only this repository and the permission Contents: Read and write.")
-			cfg.GitHubToken = con.ask("Token (it will be stored in your user settings folder, not in the watched folder): ")
-		}
-		g := &githubClient{token: cfg.GitHubToken, repo: repo}
-		if err := g.check(); err != nil {
-			fmt.Println("That did not work:", err)
-			if con.closed {
-				return nil, err
+		useStored := cfg.GitHubToken != "" && con.yes("Use the GitHub token you entered before? [Y/n] ", true)
+		if useStored {
+			if err := (&githubClient{token: cfg.GitHubToken, repo: repo}).check(); err != nil {
+				fmt.Println("That did not work:", err)
+				useStored = false
 			}
+		}
+		if !useStored && !readGitHubToken(con, cfg, repo) {
+			if con.closed {
+				return nil, errors.New("no working GitHub token was given")
+			}
+			fmt.Println("Type the repository again, or type none to not use GitHub.")
 			continue
 		}
 		st.GitHubRepo = repo
-		def := st.GitHubPath
+		// By default the log goes in a folder named after the watched folder
+		// and the start of the log's fingerprint, so that logs from several
+		// computers can never overwrite each other in one repository.
+		def, shown := st.GitHubPath, st.GitHubPath
 		if def == "" {
-			def = filepath.Base(folder) + "/" + chainName
+			if firstHash != "" {
+				def = defaultGitHubPath(folder, firstHash)
+				shown = def
+			} else {
+				shown = filepath.Base(folder) + "-<first 8 characters of the log's fingerprint>/" + chainName
+			}
 		}
-		if p := con.ask("Where in the repository should the log go? [" + def + "] "); p != "" {
+		if p := con.ask("Where in the repository should the log go? [" + shown + "] "); p != "" {
 			def = strings.Trim(filepath.ToSlash(p), "/")
 		}
-		st.GitHubPath = def
+		st.GitHubPath = def // empty until the log exists; filled in when it is created
 		break
 	}
 
@@ -263,22 +340,16 @@ func setupFolder(con *console, cfg *userConfig, folder string, old *folderSettin
 		}
 		st.ZenodoSandbox = sandbox
 		tok := cfg.zenodoToken(sandbox)
-		for {
-			if *tok == "" || !con.yes("Use the Zenodo token you entered before? [Y/n] ", true) {
-				fmt.Printf("Create a token at %s/account/settings/applications/tokens/new/\n", zenodoBase(sandbox))
-				fmt.Println("with the scopes deposit:write and deposit:actions.")
-				*tok = con.ask("Token (stored in your user settings folder): ")
+		useStored := *tok != "" && con.yes("Use the Zenodo token you entered before? [Y/n] ", true)
+		if useStored {
+			if err := (&zenodoClient{base: zenodoBase(sandbox), token: *tok}).check(); err != nil {
+				fmt.Println("That did not work:", err)
+				useStored = false
 			}
-			z := &zenodoClient{base: zenodoBase(sandbox), token: *tok}
-			err := z.check()
-			if err == nil {
-				break
-			}
-			fmt.Println("That did not work:", err)
-			if con.closed {
-				return nil, err
-			}
-			*tok = ""
+		}
+		if !useStored && !readZenodoToken(con, cfg, sandbox) {
+			fmt.Println("Zenodo publishing is turned off. Run the program with -setup to turn it on later.")
+			st.ZenodoEnabled = false
 		}
 	}
 	fmt.Println()

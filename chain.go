@@ -13,7 +13,7 @@ import (
 
 const (
 	toolName    = "datawatcher"
-	toolVersion = "0.1.0"
+	toolVersion = "0.1.1"
 	provDirName = ".provenance"
 	chainName   = "chain.jsonl"
 )
@@ -72,10 +72,11 @@ type fileState struct {
 
 // Chain is the log file plus what can be derived from reading it.
 type Chain struct {
-	path     string
-	nextSeq  int
-	lastHash [32]byte
-	lastLine []byte
+	path      string
+	nextSeq   int
+	firstHash string // fingerprint of entry 0; names the log
+	lastHash  [32]byte
+	lastLine  []byte
 
 	files           map[string]fileState // last logged version of each file
 	sessionOpen     bool                 // last session has no session_end entry
@@ -125,6 +126,9 @@ func loadChain(path string) (*Chain, error) {
 		c.lastHash = sha256.Sum256(line)
 		c.lastLine = line
 		c.nextSeq = i + 1
+		if i == 0 {
+			c.firstHash = entryHash(line)
+		}
 	}
 	return c, nil
 }
@@ -184,6 +188,9 @@ func (c *Chain) append(e *Entry) error {
 	c.apply(e)
 	c.lastHash = sha256.Sum256(line)
 	c.lastLine = line
+	if c.nextSeq == 0 {
+		c.firstHash = entryHash(line)
+	}
 	c.nextSeq++
 	return nil
 }

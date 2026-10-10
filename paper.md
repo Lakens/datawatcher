@@ -124,6 +124,14 @@ the log is created. The researcher puts this fingerprint in the
 preregistration. Because the registry dates the preregistration, the
 fingerprint commits the study to exactly one log before data collection starts.
 
+The general rule, which also covers studies with several computers, sites or
+people, is: **a log counts for a study only if its first-entry fingerprint was
+in a public, dated place before the first data entered that log.** That place
+is usually the preregistration itself. It can also be a file registered with
+it, or a dated addendum on the registry submitted before data collection on
+that log began. A study can therefore have many logs, as long as each was
+named in advance.
+
 ## 3. Using the log to show that data were collected after a preregistration
 
 The workflow is:
@@ -144,8 +152,9 @@ The workflow is:
 
 A reviewer can then check:
 
-- **One log.** The first entry's fingerprint matches the one in the registered
-  preregistration.
+- **Named logs.** The first entry's fingerprint of every log matches one
+  listed in the registered preregistration, or in a registered addendum dated
+  before that log's first data file.
 - **Intact log.** All links are correct, and the copies on GitHub and Zenodo
   match the log.
 - **Unchanged preregistration.** The registered preregistration has the same
@@ -331,8 +340,11 @@ fingerprint), the `service`, and the receipt itself in base64 encoding.
 ### 4.5 Uploads
 
 - **GitHub.** While the log changes, it is uploaded every 30 seconds to a
-  chosen path in a chosen repository, using GitHub's contents interface with a
-  personal access token. Each upload replaces the file and becomes a commit
+  chosen repository, using GitHub's contents interface with a personal access
+  token. By default the log is stored in a folder named after the watched
+  folder and the first 8 characters of the log's first-entry fingerprint, for
+  example `mystudy-e3dd5787/chain.jsonl`, so that logs from different
+  computers can share one repository without overwriting each other. Each upload replaces the file and becomes a commit
   dated by GitHub. If an upload fails, it is tried again 30 seconds later.
 - **Zenodo.** At the end of a session the program asks whether to publish. The
   first time, it creates a new Zenodo record. Later times, it creates a new
@@ -550,12 +562,14 @@ Each copy becomes a public, dated commit.
 Repository as owner/name (press Enter to skip): yourname/mystudy-log
 Create a fine-grained token at https://github.com/settings/personal-access-tokens/new
 with access to only this repository and the permission Contents: Read and write.
-Token (it will be stored in your user settings folder, not in the watched folder): github_pat_...
-Where in the repository should the log go? [mystudy/chain.jsonl]
+Token (stored in your user settings folder, not in the watched folder; press Enter to skip): github_pat_...
+Where in the repository should the log go? [mystudy-<first 8 characters of the log's fingerprint>/chain.jsonl]
 ```
 
 Type the repository as `yourname/repositoryname`, paste the token, and press
-Enter to accept the suggested place for the log. The program checks the
+Enter to accept the suggested place for the log. The place includes the start
+of the log's fingerprint, which is known once the log is created a moment
+later, so different logs never end up in the same place. The program checks the
 repository and token immediately and tells you if they do not work.
 
 ```
@@ -573,7 +587,7 @@ Then the watcher starts:
 ```
 Watching: C:\Users\you\Documents\mystudy
 Log:      C:\Users\you\Documents\mystudy\.provenance\chain.jsonl
-GitHub:   yourname/mystudy-log/mystudy/chain.jsonl
+GitHub:   yourname/mystudy-log/mystudy-e3dd5787/chain.jsonl
 Zenodo:   you will be asked at the end of the session
 
 Started a new log. The fingerprint of its first entry is
@@ -657,9 +671,9 @@ Some practical points:
   left off. Entries written without internet have no beacon values or have
   older ones, and receive receipts when the connection returns. Their time
   windows are wider, but they are still in the log.
-- **Several lab computers.** Run one watcher, with its own folder and log, on
-  each computer, and list the first-entry fingerprint of every log in the
-  preregistration.
+- **Several computers, sites or people, or long pauses.** See
+  [Pauses, other computers, and other people](#pauses-other-computers-and-other-people)
+  below.
 - **The data folder is in OneDrive, Dropbox or SURFdrive.** This works, but
   turn off "files on demand" for that folder. Otherwise the watcher downloads
   each file to fingerprint it.
@@ -705,6 +719,152 @@ Watch C:\Users\you\Documents\mystudy again? [Y/n]
 Press Enter. It checks every file, logs anything that changed while it was not
 running (marked "happened while nothing was watching"), and continues the same
 log.
+
+## Pauses, other computers, and other people
+
+All the situations below follow from one rule (Section 2.5): a log counts
+only if its first-entry fingerprint was in a public, dated place before the
+first data entered it. Three habits make them easy:
+
+- **Create logs early.** Starting the watcher once on an empty folder takes a
+  minute and fixes that log's fingerprint. Do this for every computer that
+  will collect data *before* the preregistration is finalised, even if data
+  collection is weeks away.
+- **One copy of each log.** A log must only ever grow on one computer. If two
+  copies of the same folder are both watched, the log splits into two
+  versions with the same beginning, which looks exactly like the hidden second
+  log the system is designed to expose.
+- **Explain events with a note file.** Anything saved in the watched folder is
+  logged with outside timestamps, including a short text file. A file such as
+  `notes/2026-11-03 paused, lab closed for renovation.txt` puts the
+  explanation in the log at the moment it happened, instead of in the paper
+  months later.
+
+### The preregistration is written by one person, the data are collected by another
+
+For example, the preregistration is written in Eindhoven and the data are
+collected by a collaborator in Tokyo.
+
+1. The collaborator who collects the data installs datawatcher on the
+   computer that will collect the data (Steps 1 to 4), with their own ORCID
+   iD and GitHub repository. They start it once on the empty study folder,
+   copy the first-entry fingerprint, type `stop`, and send the fingerprint to
+   the person writing the preregistration.
+2. The preregistration lists that fingerprint, with the site and computer it
+   belongs to: "Data at the Tokyo site will be logged in the datawatcher log
+   with first-entry fingerprint 7c1a…e902."
+3. The preregistration is registered. The person who wrote it does not need a
+   log of their own; the registry's timestamp shows when the preregistration
+   existed.
+4. The collaborator collects data with the watcher running.
+
+A reviewer checks that the registry's timestamp is earlier than the "written
+after" time of the first data file in the collaborator's log.
+
+If the collaborator joins after the preregistration is registered, they
+create their log as in step 1 and the fingerprint is added to the registry as
+a dated addendum (on OSF, as an update to the registration or a short linked
+registration). This must happen before their first data are collected. A
+reviewer then checks the addendum's date instead.
+
+### Data collection is started, stopped, and later continued
+
+This needs nothing special. Keep the same folder on the same computer, and
+start the watcher again when collection resumes. It continues the same log,
+and records anything that changed in the folder during the pause as "found
+while nothing was watching". The pause itself is visible as a period without
+sessions.
+
+- Publish a Zenodo version when you pause, so that the state of the log at
+  the start of the pause is publicly fixed.
+- Check before resuming that the GitHub token has not expired. If it has,
+  start the program with `-setup` and enter a new one.
+- Never start a new log for the continuation, and never delete the
+  `.provenance` folder. A new log has a new fingerprint that is not in the
+  preregistration.
+- If the `.provenance` folder was lost anyway, download `chain.jsonl` from the
+  GitHub repository, put it in a new `.provenance` folder, and start the
+  program with `-setup`. The same log continues. Any entries made after the
+  last upload are missing from the copy, but the changes they recorded are
+  logged again as "found while nothing was watching".
+
+### Data collection starts on one computer and continues on another
+
+There are two ways to do this.
+
+**Move the log (when collection stops on the first computer).**
+
+1. On the first computer, save a note file such as `notes/moved to lab PC 3.txt`,
+   wait until it is logged, then type `stop` so the final receipts and the
+   GitHub upload are made. Publish a Zenodo version.
+2. Copy the whole study folder, including the `.provenance` folder inside it,
+   to the second computer. On macOS, `.provenance` is hidden in Finder, but it
+   is copied along when you copy the study folder.
+3. Rename the folder on the first computer, for example to
+   `mystudy - MOVED, do not use`. This keeps the watcher on the first computer
+   from continuing the old copy, because it can no longer find the folder.
+4. On the second computer, start the program and give it the copied folder.
+   The study settings are kept. Tokens are stored per computer, so the program
+   asks for the GitHub and Zenodo tokens. If you skip a token, it says clearly
+   that uploads are off for that session.
+
+The log continues on the second computer as if nothing happened, and the note
+file shows when the move took place.
+
+**Give the second computer its own log (when both computers collect data).**
+Create a log on the second computer as described above. If this was not done
+before the preregistration, register its fingerprint as a dated addendum
+before the second computer collects any data.
+
+### Data are collected on 12 computers
+
+Each computer has its own watcher and its own log, so there are 12
+fingerprints. They do not need to be typed into the text of the
+preregistration, but all 12 must be in the registered, dated record. The
+easiest way:
+
+1. Before the preregistration is finalised, set up each computer once:
+   - Create the data folder with a name that identifies the computer, for
+     example `C:\data\mystudy-pc01`.
+   - Run the setup with the responsible researcher's ORCID iD.
+   - Use one GitHub repository for the whole lab. Accept the suggested place
+     for the log: it includes the start of each log's own fingerprint, so the
+     12 logs are stored separately (for example `mystudy-pc01-e3dd5787/` and
+     `mystudy-pc02-51c0f2a9/`). If you type a place yourself, make sure every
+     computer has a different one, or they overwrite each other's copies. The
+     same fine-grained token can be entered on all 12 computers.
+   - Answer "no" to Zenodo on the lab computers. At the end of the study,
+     publish all 12 logs together in one Zenodo record, with the data.
+   - Copy the first-entry fingerprint and type `stop`.
+2. Collect the fingerprints in a file `datawatcher-logs.csv` with one line per
+   computer:
+
+   ```
+   computer,folder,first_entry_fingerprint
+   pc01,C:\data\mystudy-pc01,e3dd57875682ec33393eac4a34632256bb8670e49b8da89128c97dba634974e7
+   pc02,C:\data\mystudy-pc02,51c0f2…
+   ```
+
+3. Register this file with the preregistration. On OSF, put it in the project's
+   files before registering; the registration archives a copy with the same
+   date. On a registry that accepts only text, such as AsPredicted, paste the
+   list into the preregistration text. The preregistration itself then needs
+   only one sentence: "Each of the 12 data collection computers runs its own
+   datawatcher log; their first-entry fingerprints are listed in
+   datawatcher-logs.csv, registered with this preregistration."
+4. Add one or two spare logs for computers that may be needed if one breaks.
+   A replacement computer that was not set up in advance needs a dated
+   addendum before it collects data.
+
+A reviewer runs the checking script on each of the 12 logs and compares the
+first-entry fingerprints with the registered file.
+
+**Alternative: one log for all computers.** If the 12 computers save their data
+to one shared network folder, one watcher on the computer that holds that
+folder (or on any computer with access to it) can watch the whole folder, and
+there is only one fingerprint. The disadvantage is that experiment software
+may fail to save data when the network is down, so test this before relying
+on it.
 
 ## Step 8. Record which files were analysed
 
@@ -803,8 +963,9 @@ WARNING: 1 file(s) do not match any logged version.
 
 Then go through this list:
 
-1. The first-entry fingerprint matches the one in the registered
-   preregistration.
+1. The first-entry fingerprint matches one in the registered
+   preregistration, in a file registered with it, or in a registered addendum
+   dated before the log's first data file. With several logs, check each.
 2. The preregistration's entry has an "existed by" time, and the registry's own
    timestamp, before the "written after" time of the first data file.
 3. The registered preregistration file has the same fingerprint as the logged
