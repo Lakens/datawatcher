@@ -38,8 +38,12 @@ datawatcher code (Python 3, standard library only):
 python tools/check_log.py chain.jsonl --data path/to/data --online --receipts receipts
 ```
 
-[`example/chain.jsonl`](example/chain.jsonl) is a log from a test run that you
-can practise on.
+[`example/`](example/) holds a small example study made with datawatcher: its
+files in `example/mystudy` and its log in `example/chain.jsonl`. Practise with:
+
+```
+python tools/check_log.py example/chain.jsonl --data example/mystudy --online
+```
 
 ## Building
 

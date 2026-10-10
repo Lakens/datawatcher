@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -150,24 +151,52 @@ func cleanPath(s string) string {
 func chooseFolder(con *console, cfg *userConfig, arg string) (string, error) {
 	folder := cleanPath(arg)
 	if folder == "" && cfg.LastFolder != "" {
-		if con.yes(fmt.Sprintf("Watch %s again? [Y/n] ", cfg.LastFolder), true) {
+		// The folder from last time is never re-created: a missing folder
+		// usually means it was moved or renamed, and re-creating it would
+		// start a new log that is not named in the preregistration.
+		if info, err := os.Stat(cfg.LastFolder); err != nil || !info.IsDir() {
+			fmt.Printf("The folder you watched last time, %s, no longer exists.\n", cfg.LastFolder)
+			fmt.Println("If it was moved or renamed, give its new location.")
+		} else if con.yes(fmt.Sprintf("Watch %s again? [Y/n] ", cfg.LastFolder), true) {
 			folder = cfg.LastFolder
 		}
 	}
 	for {
 		if folder == "" {
 			folder = cleanPath(con.ask("Folder to watch (you can drag the folder into this window, then press Enter): "))
-			if con.closed && folder == "" {
-				return "", errors.New("no folder was given")
+			if folder == "" {
+				if con.closed {
+					return "", errors.New("no folder was given")
+				}
+				continue // an empty answer is not the current folder
 			}
 		}
 		abs, err := filepath.Abs(folder)
-		if err == nil {
-			if info, err2 := os.Stat(abs); err2 == nil && info.IsDir() {
-				return abs, nil
+		if err != nil {
+			fmt.Printf("%q is not a usable folder name.\n", folder)
+		} else if info, err := os.Stat(abs); err == nil && info.IsDir() {
+			return abs, nil
+		} else if err == nil {
+			fmt.Printf("%s is a file, not a folder.\n", abs)
+		} else if errors.Is(err, fs.ErrNotExist) {
+			// Show the full path, because a bare name would be created in
+			// whatever folder the program happens to be started from.
+			if !con.closed {
+				create := con.yes(fmt.Sprintf("The folder %s does not exist. Create it? [Y/n] ", abs), true)
+				if create && !con.closed {
+					if err := os.MkdirAll(abs, 0o755); err != nil {
+						fmt.Println("The folder could not be created:", err)
+					} else {
+						fmt.Println("Created", abs)
+						return abs, nil
+					}
+				}
+			} else {
+				fmt.Printf("The folder %s does not exist.\n", abs)
 			}
+		} else {
+			fmt.Printf("%s cannot be opened: %v\n", abs, err)
 		}
-		fmt.Printf("%q is not a folder that can be opened.\n", folder)
 		if con.closed {
 			return "", errors.New("no usable folder was given")
 		}
@@ -250,7 +279,7 @@ func setupFolder(con *console, cfg *userConfig, folder string, old *folderSettin
 		if st.ORCID != "" {
 			hint = " [" + st.ORCID + "]"
 		}
-		in := con.ask("Your ORCID iD, for example 0000-0002-1825-0097" + hint + ": ")
+		in := con.ask("Your ORCID iD, for example 0000-0002-0247-239X" + hint + ": ")
 		if in == "" && st.ORCID != "" {
 			break
 		}

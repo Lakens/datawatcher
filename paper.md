@@ -279,13 +279,13 @@ of a reconstructed form, means that any program in any language can check the
 links. A typical entry looks like this (shortened):
 
 ```json
-{"seq":2,"type":"file_added","prev":"277409e7dd…","local_time":"2026-10-10T16:47:47+02:00",
- "session":"02828592c159","path":"prereg.txt","sha256":"f09d2ec9db…","size":21,
- "file_modified":"2026-10-10T14:47:39.98Z",
- "nist":{"uri":"https://beacon.nist.gov/beacon/2.0/chain/2/pulse/1977490","pulse_index":1977490,
-         "time":"2026-10-10T14:47:00.000Z","output_value":"336E4156…"},
- "drand":{"chain":"8990e7a9…","round":6540421,"time":"2026-10-10T14:47:30Z",
-          "randomness":"bf3f14c0…","signature":"88857c14…","previous_signature":"8677f2df…"}}
+{"seq":3,"type":"file_added","prev":"87a513936b…","local_time":"2026-10-10T18:09:24+02:00",
+ "session":"02700b7f5576","path":"preregistration/prereg.txt","sha256":"51d335ee86…","size":364,
+ "file_modified":"2026-10-10T16:09:20.91Z",
+ "nist":{"uri":"https://beacon.nist.gov/beacon/2.0/chain/2/pulse/1977571","pulse_index":1977571,
+         "time":"2026-10-10T16:08:00.000Z","output_value":"7F89F1EE…"},
+ "drand":{"chain":"8990e7a9…","round":6540584,"time":"2026-10-10T16:09:00Z",
+          "randomness":"fd3695ab…","signature":"96524ca0…","previous_signature":"b2898970…"}}
 ```
 
 | Field | Meaning |
@@ -343,7 +343,7 @@ fingerprint), the `service`, and the receipt itself in base64 encoding.
   chosen repository, using GitHub's contents interface with a personal access
   token. By default the log is stored in a folder named after the watched
   folder and the first 8 characters of the log's first-entry fingerprint, for
-  example `mystudy-e3dd5787/chain.jsonl`, so that logs from different
+  example `mystudy-8b3cbac6/chain.jsonl`, so that logs from different
   computers can share one repository without overwriting each other. Each upload replaces the file and becomes a commit
   dated by GitHub. If an upload fails, it is tried again 30 seconds later.
 - **Zenodo.** At the end of a session the program asks whether to publish. The
@@ -388,7 +388,7 @@ A methods section can say, for example:
 
 > All data were collected into a folder watched by datawatcher 0.1.0
 > (Lakens, 2026), which logged every version of every file with outside
-> timestamps. The log's first entry has fingerprint `e3dd5787…`, which is
+> timestamps. The log's first entry has fingerprint `8b3cbac6…`, which is
 > listed in the preregistration (https://osf.io/xxxxx). The full log is
 > available at https://doi.org/10.5281/zenodo.xxxxxxx. The analysed data files
 > have SHA-256 fingerprints `…` and `…`, which appear in the log as entries 812
@@ -543,13 +543,23 @@ Folder to watch (you can drag the folder into this window, then press Enter):
 
 Drag the `mystudy` folder into the window and press Enter. On Windows you can
 also copy the path from the address bar of File Explorer and paste it with a
-right-click.
+right-click. If the folder does not exist yet, type its full path, for example
+`C:\Users\you\Documents\mystudy`. The program asks whether to create it:
+
+```
+The folder C:\Users\you\Documents\mystudy does not exist. Create it? [Y/n]
+```
+
+The program never re-creates a folder you watched before and that has since
+disappeared. A missing folder usually means it was moved or renamed, and
+re-creating it would start a new log that is not in your preregistration.
+Instead, it asks for the folder's new location.
 
 ```
 Setting up C:\Users\you\Documents\mystudy
 
-Your ORCID iD, for example 0000-0002-1825-0097: 0000-0002-1825-0097
-This ORCID record belongs to Carberry, Josiah. Is that you? [Y/n]
+Your ORCID iD, for example 0000-0002-0247-239X: 0000-0002-0247-239X
+This ORCID record belongs to Lakens, Daniel. Is that you? [Y/n]
 ```
 
 The program reads your name from your public ORCID record. Press Enter to
@@ -587,11 +597,11 @@ Then the watcher starts:
 ```
 Watching: C:\Users\you\Documents\mystudy
 Log:      C:\Users\you\Documents\mystudy\.provenance\chain.jsonl
-GitHub:   yourname/mystudy-log/mystudy-e3dd5787/chain.jsonl
+GitHub:   yourname/mystudy-log/mystudy-8b3cbac6/chain.jsonl
 Zenodo:   you will be asked at the end of the session
 
 Started a new log. The fingerprint of its first entry is
-  e3dd57875682ec33393eac4a34632256bb8670e49b8da89128c97dba634974e7
+  8b3cbac6a6176edd0cefc49f5d0fdf9dcbd421c6d4ba04cdb46be50c6ec9f1a1
 Put this fingerprint in your preregistration, so that this log is the only one that counts for the study.
 
 Checking the files already in the folder...
@@ -614,7 +624,7 @@ To change these settings later, start the program from a terminal with
 Write the preregistration. Include a sentence such as:
 
 > Data collection will be logged with datawatcher. The log's first entry has
-> SHA-256 fingerprint e3dd5787…974e7. The log will be published on Zenodo.
+> SHA-256 fingerprint 8b3cbac6…9f1a1. The log will be published on Zenodo.
 
 Save the final version as a PDF (or another format that will not change when
 opened) in `mystudy/preregistration/`, with the watcher running. Within a few
@@ -829,7 +839,7 @@ easiest way:
    - Run the setup with the responsible researcher's ORCID iD.
    - Use one GitHub repository for the whole lab. Accept the suggested place
      for the log: it includes the start of each log's own fingerprint, so the
-     12 logs are stored separately (for example `mystudy-pc01-e3dd5787/` and
+     12 logs are stored separately (for example `mystudy-pc01-8b3cbac6/` and
      `mystudy-pc02-51c0f2a9/`). If you type a place yourself, make sure every
      computer has a different one, or they overwrite each other's copies. The
      same fine-grained token can be entered on all 12 computers.
@@ -841,7 +851,7 @@ easiest way:
 
    ```
    computer,folder,first_entry_fingerprint
-   pc01,C:\data\mystudy-pc01,e3dd57875682ec33393eac4a34632256bb8670e49b8da89128c97dba634974e7
+   pc01,C:\data\mystudy-pc01,8b3cbac6a6176edd0cefc49f5d0fdf9dcbd421c6d4ba04cdb46be50c6ec9f1a1
    pc02,C:\data\mystudy-pc02,51c0f2…
    ```
 
@@ -932,32 +942,52 @@ datawatcher code.
 python check_log.py chain.jsonl --data path/to/shared/data --online
 ```
 
-Example output (from the example log in this repository):
+To practise, run it on the example study in this repository, whose data files
+are in `example/mystudy` and whose log is `example/chain.jsonl`:
 
 ```
-OK: all 35 entries are correctly linked.
-First entry fingerprint (compare with the preregistration): e3dd57875682ec33393eac4a34632256bb8670e49b8da89128c97dba634974e7
-Last entry fingerprint:  95dcd91fea58301afd03620c92b6e5493fda4d909cff28e9acf0341d279f08aa
-Log started for ORCID 0000-0002-1825-0097, folder 'data', with datawatcher 0.1.0
-Sessions: 6 started, 6 ended normally
+python tools/check_log.py example/chain.jsonl --data example/mystudy --online
+```
+
+```
+OK: all 20 entries are correctly linked.
+First entry fingerprint (compare with the preregistration): 8b3cbac6a6176edd0cefc49f5d0fdf9dcbd421c6d4ba04cdb46be50c6ec9f1a1
+Last entry fingerprint:  3e2905d00881cfdf7e81b0b020b4e8a328d1496fc71dd39a0e6f91837487586c
+Log started for ORCID 0000-0002-0247-239X, folder 'mystudy', with datawatcher 0.1.1
+Sessions: 2 started, 2 ended normally
 
 File history (time window: written after .. existed by):
-      2 added    prereg.txt                     f09d2ec9dbea 2026-10-10 14:47:30 UTC .. 2026-10-10 14:47:49 UTC  [happened while not watching]
-      5 changed  session1.csv                   e9e0f519d9e2 2026-10-10 14:47:30 UTC .. 2026-10-10 14:47:59 UTC
-      7 removed  prereg.txt                                  2026-10-10 14:47:30 UTC .. 2026-10-10 14:48:06 UTC
-     ...
+      3 added    preregistration/prereg.txt     51d335ee8613 2026-10-10 16:09:00 UTC .. 2026-10-10 16:09:36 UTC
+      9 added    data/sub-001.csv               f5fc2775875f 2026-10-10 16:10:00 UTC .. 2026-10-10 16:10:52 UTC
+     10 added    data/sub-002.csv               aec67ed96a15 2026-10-10 16:10:00 UTC .. 2026-10-10 16:10:52 UTC
+     12 added    data/sub-003.csv               548b51c0428a 2026-10-10 16:10:30 UTC .. 2026-10-10 16:11:12 UTC
+     13 changed  data/sub-003.csv               f462f8df9870 2026-10-10 16:10:30 UTC .. 2026-10-10 16:11:12 UTC
+     14 added    notes/sub-003 note.txt         f8727514027b 2026-10-10 16:10:30 UTC .. 2026-10-10 16:11:12 UTC
+     16 added    data/sub-004.csv               8e87b13d2574 2026-10-10 16:11:00 UTC .. 2026-10-10 16:11:34 UTC
 
-Files in path/to/shared/data:
-  session1.csv: logged in entry 28, written after 2026-10-10 15:06:00 UTC, existed by 2026-10-10 15:06:47 UTC (DigiCert)
+Files in example/mystudy:
+  data/sub-001.csv: logged in entry 9, written after 2026-10-10 16:10:00 UTC, existed by 2026-10-10 16:10:52 UTC (DigiCert)
+  data/sub-002.csv: logged in entry 10, written after 2026-10-10 16:10:00 UTC, existed by 2026-10-10 16:10:52 UTC (DigiCert)
+  data/sub-003.csv: logged in entry 13, written after 2026-10-10 16:10:30 UTC, existed by 2026-10-10 16:11:12 UTC (DigiCert)
+  data/sub-004.csv: logged in entry 16, written after 2026-10-10 16:11:00 UTC, existed by 2026-10-10 16:11:34 UTC (DigiCert)
+  notes/sub-003 note.txt: logged in entry 14, written after 2026-10-10 16:10:30 UTC, existed by 2026-10-10 16:11:12 UTC (DigiCert)
+  preregistration/prereg.txt: logged in entry 3, written after 2026-10-10 16:09:00 UTC, existed by 2026-10-10 16:09:36 UTC (DigiCert)
 
 Comparing beacon values with the public archives...
-  checked 13 beacon values, 0 mismatches
+  checked 10 beacon values, 0 mismatches
 ```
 
-If a data file was changed after it was logged, the script says:
+In this example, the preregistration existed by 16:09:36, and the first data
+file was written after 16:10:00, so the order is established. The
+preregistration file contains the log's first-entry fingerprint
+(`8b3cbac6…9f1a1`). `data/sub-003.csv` was written in two parts, and both
+versions are in the log (entries 12 and 13). The note file explains what
+happened in that session.
+
+If a data file was changed after it was logged, the script says, for example:
 
 ```
-  session1.csv: NOT IN THE LOG (this version was never logged)
+  data/sub-002.csv: NOT IN THE LOG (this version was never logged)
 WARNING: 1 file(s) do not match any logged version.
 ```
 

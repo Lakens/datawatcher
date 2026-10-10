@@ -87,7 +87,7 @@ func TestEntryHashIsLineHash(t *testing.T) {
 }
 
 func TestORCID(t *testing.T) {
-	good := []string{"0000-0002-1825-0097", "https://orcid.org/0000-0002-1825-0097", "0000-0002-1694-233x"}
+	good := []string{"0000-0002-1825-0097", "https://orcid.org/0000-0002-1825-0097", "0000-0002-1694-233x", "0000-0002-0247-239X"}
 	for _, s := range good {
 		if _, ok := normalizeORCID(s); !ok {
 			t.Errorf("%s rejected", s)

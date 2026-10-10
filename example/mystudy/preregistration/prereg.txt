@@ -1,0 +1,8 @@
+Preregistration: Stroop example study
+
+Hypothesis: response times are longer for incongruent than for congruent trials.
+Sample: 4 participants (example).
+Analysis: paired t-test on mean response times.
+
+Data collection will be logged with datawatcher. The log's first entry has
+SHA-256 fingerprint 8b3cbac6a6176edd0cefc49f5d0fdf9dcbd421c6d4ba04cdb46be50c6ec9f1a1.

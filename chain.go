@@ -13,7 +13,7 @@ import (
 
 const (
 	toolName    = "datawatcher"
-	toolVersion = "0.1.1"
+	toolVersion = "0.1.2"
 	provDirName = ".provenance"
 	chainName   = "chain.jsonl"
 )

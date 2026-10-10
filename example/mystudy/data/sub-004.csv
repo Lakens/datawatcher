@@ -1,0 +1,5 @@
+participant,trial,condition,rt_ms,SessionDate,SessionTime
+sub-004,1,incongruent,660,2026-10-10,16:11:18
+sub-004,2,congruent,534,2026-10-10,16:11:18
+sub-004,3,incongruent,653,2026-10-10,16:11:18
+sub-004,4,congruent,616,2026-10-10,16:11:18
