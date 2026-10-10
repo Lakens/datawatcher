@@ -1,0 +1,2 @@
+# Logs must keep their exact bytes, or their links no longer match.
+*.jsonl -text
